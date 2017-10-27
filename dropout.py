@@ -44,26 +44,28 @@ else:
 
 # Defining the model.
 model = Sequential()
-model.add(Conv2D(12, (3, 3), activation=ACTIVATION, input_shape=input_shape))
+model.add(Conv2D(27, (3, 3), activation=ACTIVATION, input_shape=input_shape))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(DROPOUT))
-model.add(Conv2D(48, (3, 3), activation=ACTIVATION))
+model.add(Conv2D(81, (3, 3), activation=ACTIVATION))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(DROPOUT))
-model.add(Conv2D(192, (3, 3), activation=ACTIVATION))
+model.add(Conv2D(135, (3, 3), activation=ACTIVATION))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(DROPOUT))
 model.add(Flatten())
+model.add(Dense(128, activation=ACTIVATION))
+model.add(Dropout(DROPOUT))
 model.add(Dense(128, activation=ACTIVATION))
 model.add(Dense(N_CLASSES, activation='softmax'))
 
 #optimizer = SGD(lr=0.01, momentum=0.0, decay=0.0, nesterov=False)
 #optimizer = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
-optimizer = Adagrad(lr=0.01, epsilon=1e-08, decay=0.0)
+#optimizer = Adagrad(lr=0.01, epsilon=1e-08, decay=0.0)
 #optimizer = Adadelta(lr=1.0, rho=0.95, epsilon=1e-08, decay=0.0)
 #optimizer = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 #optimizer = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
-#optimizer = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004) 
+optimizer = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004) 
 
 model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
 

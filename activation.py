@@ -43,13 +43,14 @@ else:
 
 # Defining the model.
 model = Sequential()
-model.add(Conv2D(12, (3, 3), activation=ACTIVATION, input_shape=input_shape))
+model.add(Conv2D(27, (3, 3), activation=ACTIVATION, input_shape=input_shape))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Conv2D(48, (3, 3), activation=ACTIVATION))
+model.add(Conv2D(81, (3, 3), activation=ACTIVATION))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Conv2D(192, (3, 3), activation=ACTIVATION))
+model.add(Conv2D(135, (3, 3), activation=ACTIVATION))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Flatten())
+model.add(Dense(128, activation=ACTIVATION))
 model.add(Dense(128, activation=ACTIVATION))
 model.add(Dense(N_CLASSES, activation='softmax'))
 

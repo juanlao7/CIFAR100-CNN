@@ -11,7 +11,7 @@ N_CLASSES = 100
 SAMPLE_WIDTH = 32
 SAMPLE_HEIGHT = 32
 
-# Training parameters    
+# Parameters    
 BATCH_SIZE = 100
 N_EPOCHS = 10000                # We stop training when the validation loss converges; the training can take all the epochs it needs
 VALIDATION_SPLIT = 0.2
@@ -42,13 +42,14 @@ else:
 
 # Defining the model.
 model = Sequential()
-model.add(Conv2D(12, (3, 3), activation='relu', input_shape=input_shape))
+model.add(Conv2D(27, (3, 3), activation='relu', input_shape=input_shape))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Conv2D(48, (3, 3), activation='relu'))
+model.add(Conv2D(81, (3, 3), activation='relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Conv2D(192, (3, 3), activation='relu'))
+model.add(Conv2D(135, (3, 3), activation='relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Flatten())
+model.add(Dense(128, activation='relu'))
 model.add(Dense(128, activation='relu'))
 model.add(Dense(N_CLASSES, activation='softmax'))
 

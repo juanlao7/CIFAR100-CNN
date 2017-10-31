@@ -6,20 +6,25 @@ from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Flatten, Dropo
 from keras.utils import plot_model
 from keras.callbacks import EarlyStopping
 from keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
+from keras import regularizers
 import matplotlib.pyplot as plt
 import os.path
 import pickle
+from keras.preprocessing.image import ImageDataGenerator
+from tensorflow.contrib.framework.python.ops import gen_variable_ops
 
 N_CLASSES = 100
 SAMPLE_WIDTH = 32
 SAMPLE_HEIGHT = 32
 
-# Parameters    
+# Parameters
 BATCH_SIZE = 100
 N_EPOCHS = 10000                # We stop training when the validation loss converges; the training can take all the epochs it needs
 VALIDATION_SPLIT = 0.2
 VALIDATION_PATIENCE = 15
 ACTIVATION = 'elu'
+DROPOUT = 0
+REGULARIZER = None 
 
 def plotOptions(results, title, ylabel, keys):
     plt.gca().set_color_cycle(None)
@@ -65,19 +70,18 @@ else:
     input_shape = (SAMPLE_WIDTH, SAMPLE_HEIGHT, 3)
 
 #optimizer = Adagrad(lr=0.01, epsilon=1e-08, decay=0.0)
-optimizer = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
+#optimizer = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
+optimizer = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
 
-dropouts = {
-    '0%': 0,
-    '25%': 0.25,
-    '50%': 0.5,
-    '75%': 0.75
+modes = {
+    'No augmentation': {},
+    'Augmented': {6: 15, 7: 0.1, 8: 0.1, 9: 0.1, 10: 0.2, 14: True}
 }
 
 results = {}
 
-for i in dropouts:
-    print '###    Dropout ' + i + '    ###'
+for i in modes:
+    print '###    Mode ' + i + '    ###'
     
     resultFileName = 'model_' + i + '.result'
     
@@ -86,32 +90,74 @@ for i in dropouts:
         results[i] = pickle.load(handler)
         handler.close()
         continue
-    
+        
     # Defining the model.
     model = Sequential()
-    model.add(Conv2D(27, (3, 3), activation=ACTIVATION, input_shape=input_shape))
+    model.add(Conv2D(27, (3, 3), activation=ACTIVATION, input_shape=input_shape, kernel_regularizer=REGULARIZER))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(dropouts[i]))
-    model.add(Conv2D(81, (3, 3), activation=ACTIVATION))
+    model.add(Dropout(DROPOUT))
+    model.add(Conv2D(81, (3, 3), activation=ACTIVATION, kernel_regularizer=REGULARIZER))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(dropouts[i]))
-    model.add(Conv2D(135, (3, 3), activation=ACTIVATION))
+    model.add(Dropout(DROPOUT))
+    model.add(Conv2D(135, (3, 3), activation=ACTIVATION, kernel_regularizer=REGULARIZER))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(dropouts[i]))
+    model.add(Dropout(DROPOUT))
     model.add(Flatten())
-    model.add(Dense(128, activation=ACTIVATION))
-    model.add(Dropout(dropouts[i]))
-    model.add(Dense(128, activation=ACTIVATION))
-    model.add(Dense(N_CLASSES, activation='softmax')) 
+    model.add(Dense(128, activation=ACTIVATION, kernel_regularizer=REGULARIZER))
+    model.add(Dropout(DROPOUT))
+    model.add(Dense(128, activation=ACTIVATION, kernel_regularizer=REGULARIZER))
+    model.add(Dense(N_CLASSES, activation='softmax'))
     
     model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
     
-    # Visualizing the model.
-    plot_model(model, to_file='dropout.png', show_shapes=True)
-    
     # Training the model.
     stopper = EarlyStopping(monitor='val_loss', patience=VALIDATION_PATIENCE)
-    h = model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=N_EPOCHS, callbacks=[stopper], validation_split=VALIDATION_SPLIT)
+    
+    if i == 'No augmentation':
+        h = model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=N_EPOCHS, callbacks=[stopper], validation_split=VALIDATION_SPLIT)
+    else:
+        split = int(x_train.shape[0] * 0.2)
+        x_val = x_train[-split:]
+        y_val = y_train[-split:]
+        x_train = x_train[:-split]
+        y_train = y_train[:-split]
+        
+        generatorParameters = [
+            False,                        # featurewise_center
+            False,                        # samplewise_center
+            False,                        # featurewise_std_normalization
+            False,                        # samplewise_std_normalization
+            False,                        # zca_whitening
+            1e-6,                         # zca_epsilon
+            0,                            # rotation_range
+            0.,                           # width_shift_range
+            0.,                           # height_shift_range
+            0.,                           # shear_range
+            0.,                           # zoom_range
+            0.,                           # channel_shift_range
+            'reflect',                    # fill_mode
+            0.,                           # cval
+            False,                        # horizontal_flip
+            False,                        # vertical_flip
+            None,                         # rescale
+            None,                         # preprocessing_function
+            backend.image_data_format(),  # data_format
+        ]
+        
+        for j in modes[i]:
+            generatorParameters[j] = modes[i][j]
+        
+        gen_train = ImageDataGenerator(*generatorParameters)
+        gen_train.fit(x_train)
+        gen_train_flow = gen_train.flow(x_train, y_train, batch_size=BATCH_SIZE)
+        gen_train_steps = len(x_train) / BATCH_SIZE
+        
+        gen_val = ImageDataGenerator(*generatorParameters)
+        gen_val.fit(x_val)
+        gen_val_flow = gen_val.flow(x_val, y_val, batch_size=BATCH_SIZE)
+        gen_val_steps = len(x_val) / BATCH_SIZE
+        
+        h = model.fit_generator(gen_train_flow, steps_per_epoch=gen_train_steps, epochs=N_EPOCHS, callbacks=[stopper], validation_data=gen_val_flow, validation_steps=gen_val_steps)
     
     # Evaluating the model.
     score = model.evaluate(x_test, y_test, verbose=0)
@@ -125,7 +171,7 @@ for i in dropouts:
     handler = open(resultFileName, 'wb')
     pickle.dump(results[i], handler)
     handler.close()
-    
+
 print '### FINISH! ###'
 
 for i in results:

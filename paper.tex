@@ -6,7 +6,6 @@
 \usepackage{float}
 \usepackage{hyperref}
 
-%opening
 \title{Some Deep Learning Techniques}
 \author{Juan Lao Tebar}
 
@@ -16,23 +15,25 @@
 
 \begin{abstract}
 
+Deep Convolutional Neural Networks are powerful learning models, specially for image processing. In this practice we classify the CIFAR100 dataset implementing several Deep Learning techniques to improve the learning process and to prevent overfitting, testing different optimizing algorithms, choosing a better activation function, applying dropout, regularizing with weight decay and extending the original dataset with data augmentation.
+
 \end{abstract}
 
 \section{Introduction}
 
-In this practice we analyze the practical effect of several deep learning techniques and methods.
+In this practice we analyze the practical effect of several deep learning techniques and methods in a model based on CNN (Convolutional Neural Networks) in order to classify the CIFAR100 dataset.
 
-For this purpose we implement a model based on CNN (Convolutional Neural Networks) in order to classify the CIFAR100 dataset, composed by 60,000 32x32 color images labeled over 100 categories. The workflow of this practice consists in defining a baseline model and improving it in the following experiments, step by step.
+CIFAR100 is composed by 60,000 32x32 color images labeled over 100 categories. The workflow of this practice consists in defining a baseline model and improving it in the following experiments, step by step.
 
 The code related to this work is public and available at github\footnote{\url{https://github.com/juanlao7/CIFAR100-CNN}}.
 
 \section{Experiments}
 
-40,000 images are used for training, 10,000 for validation and 10,000 for testing. The loss is measured using a common cross entropy, but we compute the accuracy of the model against training, validation and test data as well.
+We divide the dataset into 40,000 images used for training, 10,000 for validation and 10,000 for testing. On the one hand, we measure the loss of the model by using common cross entropy, while on the other hand we compute its accuracy against training, validation and test data to determine the model's final performance.
 
 \subsection{Baseline}
 
-Our first model has the structure shown in figure \ref{f:baseline}, using ReLU as activation function for all the hidden units, and softmax for the output layer.
+Our baseline model is composed by three convolutional layers with a kernel size of $3\times3$ and 27, 81, 135 filters respectively; after each convolutional layer we perform a MaxPooling with a pool size of $2\times2$. Finally, this pyramid-schemed stack is connected to two dense layers of 128 units each. We use ReLU as activation function for all the hidden units, and softmax on the output layer. A graphical schema of this model can be seen in figure \ref{f:baseline}.
 
 We train the model in batches of 100 samples using the SGD (Stochastic Gradient Descent) optimizer with a learning rate of 0.001, no momentum and no learning rate decay. Our stop criteria consists in detecting a minimum in the validation loss, stopping the training 15 epochs after it is reached.
 
@@ -53,9 +54,9 @@ Table \ref{t:baseline} shows the results obtained with this model, using the scr
 
 \subsection{Activation Function}
 
-Clevert, Unterthiner, \& Hochreiter, 2016 \cite{clevert2015fast} found that using ELU instead of ReLU not only speeds up learning in deep neural networks, but also leads to higher classification accuracies. ``In contrast to ReLUs, ELUs have negative values which allows them to push mean unit activations closer to zero like batch normalization but with lower computational complexity. Mean shifts toward zero speed up learning by bringing the normal gradient closer to the unit natural gradient because of a reduced bias shift effect''.
+Clevert, Unterthiner, \& Hochreiter, 2016 \cite{clevert2015fast} found that using ELU instead of ReLU not only speeds up the learning process in deep neural networks, but also leads to higher classification accuracies: ``In contrast to ReLUs, ELUs have negative values which allows them to push mean unit activations closer to zero like batch normalization but with lower computational complexity. Mean shifts toward zero speed up learning by bringing the normal gradient closer to the unit natural gradient because of a reduced bias shift effect''.
 
-Clevert et al., 2016 test their hypothesis on CIFAR100, our same dataset. In this experiment we aim to reproduce the same results, testing different activation functions---ReLU, ELU and softplus---for the hidden layers.
+Clevert et al., 2016 test their hypothesis also on CIFAR100, the same dataset we use in this practice. In this experiment we aim to reproduce similar results, testing different activation functions---ReLU, ELU and softplus---for the hidden layers of our model.
 
 Table \ref{t:act} shows the results obtained with each activation function, using the script \texttt{activation.py}, while figure \ref{f:act1} shows the evolution of the loss during the training.
 
@@ -81,7 +82,7 @@ Table \ref{t:act} shows the results obtained with each activation function, usin
 	\label{f:act1}
 \end{figure}
 
-As we can see in figure \ref{f:act1}, validation loss on ELUs take a lesser number of epochs to converge, and the convergence value is lower than with ReLU or softplus, confirming the results obtained by Clevert et al., 2016.
+As we can see in figure \ref{f:act1}, validation loss on ELUs take a lesser number of epochs to converge, and the convergence value is lower than the one obtained with ReLUs or softplus, confirming the results obtained by Clevert et al., 2016.
 
 In the following experiments we establish ELU as the activation function for all the units of the hidden layers.
 
@@ -98,7 +99,7 @@ In comparison with the classic SGD, adaptive optimizing algorithms may improve t
 	\item Nadam \cite{dozat2016incorporating} with a learning rate of 0.002, $ \beta_1 = 0.9 $, $ \beta_2 = 0.999 $, $ \varepsilon = 1 \cdot 10^{-8} $ and a schedule decay of 0.004.
 \end{itemize}
 
-The value of the hyperparameters of each optimizer is the default value set by keras framework\footnote{\url{https://keras.io/optimizers/}}.
+The hyperparameters of each optimizer take as value the default proposed by keras framework\footnote{\url{https://keras.io/optimizers/}}.
 
 Table \ref{t:opt} shows the results obtained with each optimizer, using the script \texttt{optimizer.py}, while figure \ref{f:opt1} shows the evolution of the loss during the training.
 
@@ -128,15 +129,15 @@ Table \ref{t:opt} shows the results obtained with each optimizer, using the scri
 	\label{f:opt1}
 \end{figure}
 
-As we see in figure \ref{f:opt1}, Nadam training curve is the most pronounced, indicating that it is a powerful learning algorithm, despite it obtains the worst validation loss at the end of the process due to overfitting. On the other hand, Adagrad has the best validation loss, but with a much flatter training curve.
+As we see in figure \ref{f:opt1}, Nadam training curve is the most pronounced, indicating that it is a powerful learning algorithm, despite it obtains the worst validation loss at the end of the process due to overfitting. On the other hand Adagrad has the best validation loss, but with a much flatter training curve.
 
 In the following experiments we try different regularization methods on Adagrad and Nadam.
 
 \subsection{Dropout}
 
-Dropout is a good regularization method. \cite{srivastava2014dropout} ``The key idea is to randomly drop units (along with their connections) from the neural network during training. This prevents units from co-adapting too much. During training, dropout samples from an exponential number of different ``thinned'' networks. At test time, it is easy to approximate the effect of averaging the predictions of all these thinned networks by simply using a single unthinned network that has smaller weights. This significantly reduces overfitting and gives major improvements over other regularization methods''.
+Dropout is considered a simple and powerful regularization method. \cite{srivastava2014dropout} ``The key idea is to randomly drop units (along with their connections) from the neural network during training. This prevents units from co-adapting too much. During training, dropout samples from an exponential number of different ``thinned'' networks. At test time, it is easy to approximate the effect of averaging the predictions of all these thinned networks by simply using a single unthinned network that has smaller weights. This significantly reduces overfitting and gives major improvements over other regularization methods''.
 
-In this experiment we apply different dropout values---25\%, 50\% and 75\%---between some hidden layers of the model, as shown in figure \ref{f:drop1}.
+In this experiment we apply different dropout values---25\%, 50\% and 75\%---after each MaxPooling layer of the model and between the final hidden dense layers, as shown in figure \ref{f:drop1}.
 
 Table \ref{t:drop} shows the results obtained with each dropout value, using the script \texttt{dropout.py}, while figures \ref{f:drop2} and \ref{f:drop3} show the evolution of the loss during the training for Adagrad and Nadam respectively.
 
@@ -175,11 +176,11 @@ Table \ref{t:drop} shows the results obtained with each dropout value, using the
 	\label{f:drop3}
 \end{figure}
 
-As we can see in figures \ref{f:drop2} and \ref{f:drop3}, a dropout of 25\% regularizes the network, decreasing the gap between validation and training losses; as a result, the validation accuracy obtained is higher than with unregularized models, no matter the optimizing algorithm. Higher dropout factors obtain worse results.
+As we can see in figures \ref{f:drop2} and \ref{f:drop3}, a dropout of 25\% successfully regularizes the network, decreasing the gap between validation and training losses; as a result, the resulting validation accuracy is higher than the one obtained with unregularized models, no matter the optimizing algorithm. Higher dropout factors obtain worse results than our original approach.
 
-Without applying regularization, Adagrad got a better accuracy than Nadam; however, after applying dropout, Nadam gets a better mark.
+Without applying regularization, Adagrad gets a better accuracy than Nadam; however, after applying dropout, Nadam gets a better mark.
 
-On the following experiments we always apply a dropout factor of 25\%.
+In the following experiments we always apply a dropout factor of 25\%.
 
 \subsection{Weight Decay}
 
@@ -238,7 +239,7 @@ Table \ref{t:ker1} shows the results obtained with each decay function, using th
 	\label{f:ker4}
 \end{figure}
 
-In the second part of this experiment we test different weight decay factors---0.01, 0.001, 0.0001 and 0.00001---on L2, the function that got the best results in the previous experiment. Table \ref{t:ker2} shows the results obtained with different weight decay factors, using the script \texttt{weight2.py}, while figures \ref{f:ker5} and \ref{f:ker6} show the evolution of the loss during the training for Adagrad and figures \ref{f:ker7} and \ref{f:ker8} show the same evolution but for Nadam.
+In the second part of this experiment we test different weight decay factors---0.01, 0.001, 0.0001 and 0.00001---on L2, the function that gets the best results in the previous experiment. Table \ref{t:ker2} shows the results obtained with different weight decay factors, using the script \texttt{weight2.py}, while figures \ref{f:ker5} and \ref{f:ker6} show the evolution of the loss during the training for Adagrad and figures \ref{f:ker7} and \ref{f:ker8} show the same evolution but for Nadam.
 
 \begin{table}[H]
 	\centering
@@ -291,7 +292,7 @@ In the second part of this experiment we test different weight decay factors---0
 	\label{f:ker8}
 \end{figure}
 
-As we can see, the lowest loss is obtained when we do not apply weight decay, in any of the tested optimizers. However, we obtain a slightly better accuracy in Adagrad with an L2 weight decay of 0.0001. With this configuration Adagrad performs better than Nadam, obtaining the best test accuracy we got until now.
+As we can see, we obtain the lowest loss we do not apply weight decay, no matter the optimizer. However, we obtain a slightly better accuracy in Adagrad with an L2 weight decay of 0.0001. With this configuration Adagrad performs better than Nadam, obtaining the best test accuracy we have achieved until now.
 
 From now on, we test only Adagrad with L2 weight decay of 0.0001.
 
@@ -340,11 +341,11 @@ Table \ref{t:data1} shows the results obtained with each modification, using the
 
 As we can see, data augmentation does not improve the test accuracy of the model, and in some cases it makes it even worse.
 
-\subsection{The Last Experiment}
+\subsection{An Additional Experiment}
 
-Since we applied dropout and weight decay, our model does not overfits anymore, so data augmentation does not improve the result. It would be interesting to try data augmentation without any other regularization method.
+Since we applied dropout and weight decay, our model does not overfit anymore, so data augmentation does not improve the result.
 
-In this experiment we test the performance of RMSprop with and without data augmentation, without dropout and without weight decay.
+In order to have a better idea about the effect of data augmentation in unregularized models, in this experiment we test the performance of RMSprop with data augmentation, without applying dropout or weight decay.
 
 Table \ref{t:rms1} shows the results obtained with each modification, using the script \texttt{data\_augmentation.py}, while figure \ref{f:rms1} shows the evolution of the loss during the training.
 
@@ -374,7 +375,7 @@ Table \ref{t:rms1} shows the results obtained with each modification, using the 
 	\label{f:rms1}
 \end{figure}
 
-As we can see, data augmentation prevents overfitting. However, in our previous experiment it was not enough. In the next experiment we apply all the modifications at the same time.
+As we can see, in this case, data augmentation prevents overfitting. In the next experiment we apply all the modifications at the same time.
 
 Table \ref{t:rms2} shows the results obtained in each case, using the script \texttt{data\_augmentation.py}, while figure \ref{f:rms2} shows the evolution of the loss during the training.
 
@@ -399,29 +400,27 @@ Table \ref{t:rms2} shows the results obtained in each case, using the script \te
 	\label{f:rms2}
 \end{figure}
 
-As we can see, now the model does not overfit the training data, and even obtains the best test accuracy we got until now.
+As we can see, now the model does not overfit the training data, and even obtains the best test accuracy we have achieved until now.
 
 \section{Discussion}
 
-In this work we saw how the activation function plays an important role on the learning process, and we discovered that ELU leads to a considerable improvement compared to the common ReLU or to other continuous functions such as softplus. The reason behind this, as stated, ``ELUs have negative values which allows them to push mean unit activations closer to zero like batch normalization but with lower computational complexity. Mean shifts toward zero speed up learning by bringing the normal gradient closer to the unit natural gradient because of a reduced bias shift effect''.
+In this work we have seen how the activation function plays an important role in the learning process, and we have discovered that ELU leads to a considerable improvement compared to the common ReLU or to other continuous functions such as softplus. The reason behind this, as stated by Clevert et al., 2016: ``ELUs have negative values which allows them to push mean unit activations closer to zero like batch normalization but with lower computational complexity. Mean shifts toward zero speed up learning by bringing the normal gradient closer to the unit natural gradient because of a reduced bias shift effect''.
 
-Regarding to the optimizer, we discovered that a lot of adaptive algorithms overfit the training data, specially Nadam and RMSprop.
+Regarding to the optimizer, we have seen that a lot of adaptive algorithms overfit the training data, specially Nadam and RMSprop.
 
-We discovered that a dropout of 25\% is enough to avoid overfitting, since it ``prevents units from co-adapting too much''.
+We have found that a dropout of 25\% is enough to avoid overfitting, since it ``prevents units from co-adapting too much''. \cite{srivastava2014dropout} In addition to this, an L2 weight decay of 0.0001 applies an additional regularization that gives slightly better results.
 
-At this point we prevented our model from overfitting, but it was still possible to obtain slightly better results applying an L2 weight decay of 0.0001.
-
-Regarding to data augmentation, our regularized model did not show any improvement, because it was not overfitting anymore. However, when we tried an unregularized model trained with a strong optimizer---RMSprop---, we could observe a huge improvement in the validation and test accuracies.
+Regarding to data augmentation, our regularized model has not shown any improvement, because it does not overfit the training data anymore. However, when we have tried an unregularized model trained with a strong optimizer---RMSprop---, we have observed a huge improvement in the validation and test accuracies.
 
 \section{Conclusions and Future Work}
 
-In this practice we tested several deep learning techniques to obtain a good model for classifying CIFAR100. We could observe that the general process consists in two parts: making a powerful learning model and, after we have it, applying regularization to improve generalization.
+In this practice we have tested several deep learning techniques in order to obtain a good model for classifying CIFAR100. We have observed that the general process consists in two parts: making a powerful learning model and, after obtaining it, applying regularization to improve generalization.
 
-When we check out the general validation loss evolution of the latest experiments, we can see that the learning process stops too early. A higher validation patience would lead to better results. In addition, we must note that staying with the model that offers the minimum validation loss instead of staying with the last trained model would also give better test accuracies, of course.
+When we check out the general validation loss evolution of the latest experiments, we can see that the learning process stops too early. In the future we could test higher validation patience levels and it may lead to better results. In addition, we must note that staying with the model that offers the minimum validation loss---instead of staying with the model of the last epoch---would also give better test accuracies, of course.
 
-Regarding to regularization, it would be interesting to try the effect of different batch sizes, as well as refining the optimizer hyperparameters.
+With regard to regularization, it would be interesting to try the effect of different batch sizes, as well as refining the optimizer hyperparameters.
 
-Finally, it would be interesting to try different network topologies. In this work we tested a simple CNN model, but a recursive model---such as attention models \cite{itti1998model}---may offer better results.
+Finally, different network topologies may lead to better results too. In this practice we have tested a simple CNN model of three convolutional layers and two dense layers, but a more complex model, or even a recursive one---such as attention models \cite{itti1998model}---may give better results.
 
 \bibliography{bibfile}{}
 \bibliographystyle{plain}
